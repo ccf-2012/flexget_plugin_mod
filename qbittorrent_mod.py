@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 
 from loguru import logger
@@ -11,7 +12,7 @@ from flexget.event import event
 from flexget.utils.template import RenderError
 
 logger = logger.bind(name='qbittorrent_mod')
-DISK_SPACE_MARGIN = 2048000000 # 2G before disk full
+DISK_SPACE_MARGIN = 20048000000 # 2G before disk full
 DISK_SPACE_100G = 102400000000 # skip torrent check if disk space > 100G
 
 
@@ -132,25 +133,32 @@ class OutputQBitTorrentMod:
 
     def get_free_space(self, client):
         # TODO: use qbittorrentapi.Client
-        if not self.connected:
-            raise plugin.PluginError('Not connected.')
-
-        sync_maindata_url = '/api/v2/sync/maindata?rid=0'
         try:
-            response = self.session.request(
-                'get', 
-                self.url + sync_maindata_url)
+            r = client.sync_maindata(rid=0)
+            return r['server_state']['free_space_on_disk']
         except RequestException:
-            logger.error('rror getting qBittorrent main data.')
+            logger.error('Error getting qBittorrent main data.')
             return -1
+
+        # if not self.connected:
+        #     raise plugin.PluginError('Not connected.')
+
+        # sync_maindata_url = '/api/v2/sync/maindata?rid=0'
+        # try:
+        #     response = self.session.request(
+        #         'get', 
+        #         self.url + sync_maindata_url)
+        # except RequestException:
+        #     logger.error('Error getting qBittorrent main data.')
+        #     return -1
         
-        if response.status_code != 200:
-            logger.error(
-                'Error getting qBittorrent main data: {}', response.status_code )
-            return -1
-        data = response.json()
-        self.api_free_space = data['server_state']['free_space_on_disk']
-        return self.api_free_space
+        # if response.status_code != 200:
+        #     logger.error(
+        #         'Error getting qBittorrent main data: {}', response.status_code )
+        #     return -1
+        # data = response.json()
+        # self.api_free_space = data['server_state']['free_space_on_disk']
+        # return self.api_free_space
     
     @staticmethod
     def client(host: str, port: int, username: str, password: str):
@@ -211,8 +219,7 @@ class OutputQBitTorrentMod:
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['downloaded']))
                     self.delete_torrent(client, tor_to_del['hash'])
-                    # self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
-                # time.sleep(5)
+                time.sleep(5)
                 size_storage_space = self.get_free_space(client)
                 logger.info('Free space: %d bytes.' % (size_storage_space))
                 return True
