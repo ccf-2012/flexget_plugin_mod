@@ -1,11 +1,13 @@
 # Flexget Plugin Mod
 
-* deluge_mod: flexget deluge plugin with auto-remove, 在添加种子时，根据磁盘剩余空间进行删种
-
+在添加种子时，根据磁盘剩余空间进行删种，支持 deluge, qBittorrent
+* deluge_mod: flexget deluge plugin with auto-remove
+* qbittorrent_mod: flexget qBittorrent plugin with auto-remove
+  
 ## 流程逻辑
 * 每次运行 flexget execute 时，有种子符合条件要加，在加入deluge之前，会进行此逻辑判断
 * 设准备新添加的种子大小为 size_new_torrent
-* 计算 deluge 中当前所有正在下载的种子的剩余体积 size_left_to_complete，如果种子暂停，因不是在下载，所以其剩余体积不会计入
+* 计算 deluge 中当前所有正在下载的种子的剩余体积 size_left_to_complete，如果种子暂停则剩余体积不会计入
 * 由 deluge 取得磁盘剩余空间 size_storage_space
 * 如果 size_storage_space - size_left_to_complete > size_new_torrent 则直接加种
 * 否则，对 deluge 中已完成种子，以 seeding_time 排序，逐个：
@@ -24,6 +26,11 @@
 ```sh
 wget -O ~/.config/flexget/plugins/deluge_mod.py https://raw.githubusercontent.com/ccf-2012/flexget_plugin_mod/main/deluge_mod.py
 ```
+* 或
+```sh
+wget -O ~/.config/flexget/plugins/qbittorrent_mod.py https://raw.githubusercontent.com/ccf-2012/flexget_plugin_mod/main/qbittorrent_mod.py
+```
+
 
 ## 配置
 * 修改原有的 `config.yml` 中的 `deluge` 为 `deluge_mod`，例如：
@@ -40,5 +47,6 @@ task1:
       username: user
       password: pass
 ```
-* 其它使用同原 deluge 插件
+* 对于 qBittorrent，则将 `qbittorrent` 改为 `qbittorrent_mod`
+* 其它使用同原插件
 
