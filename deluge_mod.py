@@ -13,8 +13,9 @@ from flexget.event import event
 from flexget.utils.pathscrub import pathscrub
 from flexget.utils.template import RenderError
 
-logger = logger.bind(name='deluge')
-
+logger = logger.bind(name='deluge_mod')
+DISK_SPACE_MARGIN = 2048000000 # 2G before disk full
+DISK_SPACE_100G = 102400000000 # skip torrent check if disk space > 100G
 
 class DelugeModPlugin:
     """Base class for deluge plugins, contains settings and methods for connecting to a deluge daemon."""
@@ -274,18 +275,25 @@ class OutputDelugeMod(DelugeModPlugin):
         }
     
     def load_torrents(self, client):
-        torrents = client.call('core.get_torrents_status', {}, [
-            'name',
-            'hash',
-            'total_size',
-            'total_done',
-            'is_finished',
-            'tracker_host',
-            'seeding_time',
-            'state',
-        ])
-        logger.info('Currently %d torrents in client.' % (len(torrents)))
-        return torrents.values()
+        # TODO：retry n times
+        for _ in range(2):
+            try:
+                torrents = client.call('core.get_torrents_status', {}, [
+                    'name',
+                    'hash',
+                    'total_size',
+                    'total_done',
+                    'is_finished',
+                    'tracker_host',
+                    'seeding_time',
+                    'state',
+                ])
+                logger.info('Currently %d torrents in client.' % (len(torrents)))
+                return True, torrents.values()
+            except Exception as exc:
+                time.sleep(5)
+        logger.error('Fail to load torrent list!')
+        return False, []
 
     def space_for_torrent(self, client, torrents, entry):
         size_new_torrent = entry.get("size")
@@ -298,7 +306,7 @@ class OutputDelugeMod(DelugeModPlugin):
         for torrent in uncompleted_torrents:
             size_left_to_complete += (torrent['total_size'] - torrent['total_done'])
 
-        if size_storage_space - size_left_to_complete > size_new_torrent:
+        if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         
@@ -313,7 +321,7 @@ class OutputDelugeMod(DelugeModPlugin):
         for tor_complete in completed_torrents:
             torrents_to_del += tor_complete
             size_storage_space += tor_complete['total_done']
-            if size_storage_space - size_left_to_complete > size_new_torrent:
+            if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s.' % (tor_to_del['name']))
@@ -402,17 +410,22 @@ class OutputDelugeMod(DelugeModPlugin):
                         logger.debug('Adding the label `{}` to deluge', label)
                         client.call('label.add', label)
 
-        # Load torrents in deluge
-        torrents = self.load_torrents(client)
+        size_storage_space = client.call('core.get_free_space')
+        torlist_loaded = False
+        # skip torrent autoremove if DISK_SPACE > 100G
+        if size_storage_space < DISK_SPACE_100G:
+            # Load torrents in deluge
+            torlist_loaded, torrents = self.load_torrents(client)
 
         # add the torrents
         torrent_ids = client.call('core.get_session_state')
         for entry in task.accepted:
-            # make space for new torrent
-            enough_space = self.space_for_torrent(client, torrents, entry)
-            if not enough_space:
-                logger.info('No disk space left, skip torrent: {}', entry['title'])
-                continue
+            if torlist_loaded:
+                # make space for new torrent
+                enough_space = self.space_for_torrent(client, torrents, entry)
+                if not enough_space:
+                    logger.info('No enough disk space left, skip torrent: {}', entry['title'])
+                    continue
 
             # Generate deluge options dict for torrent add
             add_opts = {}
