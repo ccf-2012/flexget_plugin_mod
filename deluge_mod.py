@@ -415,15 +415,15 @@ class OutputDelugeMod(DelugeModPlugin):
                         logger.debug('Adding the label `{}` to deluge', label)
                         client.call('label.add', label)
 
-        size_storage_space = client.call('core.get_free_space')
         # skip torrent autoremove if DISK_SPACE > 100G
-        if size_storage_space < DISK_SPACE_100G:
-            # Load torrents in deluge
-            torlist_loaded, torrents = self.load_torrents(client)
-            if not torlist_loaded:
-                logger.debug('Fail to load torrent list.')
-                client.disconnect()
-                return            
+        # size_storage_space = client.call('core.get_free_space')
+        # if size_storage_space < DISK_SPACE_100G:
+        # Load torrents in deluge
+        torlist_loaded, torrents = self.load_torrents(client)
+        if not torlist_loaded:
+            logger.debug('Fail to load torrent list.')
+            client.disconnect()
+            return            
 
         # add the torrents
         torrent_ids = client.call('core.get_session_state')
