@@ -3,25 +3,22 @@
 * deluge_mod: flexget deluge plugin with auto-remove, 在添加种子时，根据磁盘剩余空间进行删种
 
 ## 流程逻辑
+* 每次运行 flexget execute 时，有种子符合条件要加，在加入deluge之前，会进行此逻辑判断
 * 设准备新添加的种子大小为 size_new_torrent
-* 计算 deluge 中当前所有正在下载的种子的剩余体积 size_left_to_complete
-* 如果磁盘的剩余空间 size_storage_space - size_left_to_complete > size_new_torrent 则直接加种
+* 计算 deluge 中当前所有正在下载的种子的剩余体积 size_left_to_complete，如果种子暂停，因不是在下载，所以其剩余体积不会计入
+* 由 deluge 取得磁盘剩余空间 size_storage_space
+* 如果 size_storage_space - size_left_to_complete > size_new_torrent 则直接加种
 * 否则，对 deluge 中已完成种子，以 seeding_time 排序，逐个：
 	* 假设删除种子，size_storage_space 增加种子完成的大小
 	* 重新判断 size_storage_space - size_left_to_complete > size_new_torrent，成功则真实删种，并加种退出
 	* 否则继续，直至所有已完成种子都假设删光
-* 如果假设所有已完成种子删光仍不够空间，则不进行删种，也不加种，Skip退出
+* 如果假设所有已完成种子删光仍不够空间，则不进行真实删种，也不加种，Skip退出
 
 * Note:
-1. 每次运行 flexget execute 时，有任务要加时，会进行此逻辑判断
-2. 磁盘剩余空间由 deluge 取得
-3. 如果种子暂停，因不是在下载，所以其剩余体积不会加入 size_left_to_complete
-4. 如果种子有手工设置部分下载并已经完成，则也会被删
-5. 取种子列表会有机率出现超时失败，原因不明，新增机制：
-   1. 新增如果当前磁盘空间超过100G，则跳过种子检查
-   2. 如果未能取得种子列表，则按原插件逻辑加种（TODO：这不合理）
-   3. 即，在成功取得种子列表的时候，才会处理上述删种、加种或跳过逻辑
-
+1. 如果种子有手工设置部分下载并已经完成，则也会被删
+2. 取种子列表会有机率出现超时失败，原因不明，新增机制：
+   1. 如果当前磁盘空间超过100G，则跳过种子检查
+   2. 如果未能取得种子列表，则跳出不加种 
 
 
 ## 安装

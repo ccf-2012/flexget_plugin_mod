@@ -326,7 +326,10 @@ class OutputDelugeMod(DelugeModPlugin):
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['total_done']))
-                    client.call('core.remove_torrent', tor_to_del['hash'], True)
+                    try:
+                        client.call('core.remove_torrent', tor_to_del['hash'], True)
+                    except:
+                        logger.error('Fail to remove torrent: %s' % tor_to_del['name'])
                     # self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
                 time.sleep(5)
                 size_storage_space = client.call('core.get_free_space')
@@ -413,21 +416,23 @@ class OutputDelugeMod(DelugeModPlugin):
                         client.call('label.add', label)
 
         size_storage_space = client.call('core.get_free_space')
-        torlist_loaded = False
         # skip torrent autoremove if DISK_SPACE > 100G
         if size_storage_space < DISK_SPACE_100G:
             # Load torrents in deluge
             torlist_loaded, torrents = self.load_torrents(client)
+            if not torlist_loaded:
+                logger.debug('Fail to load torrent list.')
+                client.disconnect()
+                return            
 
         # add the torrents
         torrent_ids = client.call('core.get_session_state')
         for entry in task.accepted:
-            if torlist_loaded:
-                # make space for new torrent
-                enough_space = self.space_for_torrent(client, torrents, entry)
-                if not enough_space:
-                    logger.info('No enough disk space left, skip torrent: {}', entry['title'])
-                    continue
+            # make space for new torrent
+            enough_space = self.space_for_torrent(client, torrents, entry)
+            if not enough_space:
+                logger.info('No enough disk space left, skip torrent: {}', entry['title'])
+                continue
 
             # Generate deluge options dict for torrent add
             add_opts = {}
