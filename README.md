@@ -24,7 +24,7 @@
 ## 安装
 * 下载 `deluge_mod.py` 到 flexget 的 plugins 目录
 ```sh
-wget -P ~/.config/flexget/plugins/ https://github.com/ccf-2012/flexget_plugin_mod/blob/main/deluge_mod.py
+wget -O ~/.config/flexget/plugins/deluge_mod.py https://raw.githubusercontent.com/ccf-2012/flexget_plugin_mod/main/deluge_mod.py
 ```
 
 ## 配置
