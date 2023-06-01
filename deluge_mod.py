@@ -313,20 +313,22 @@ class OutputDelugeMod(DelugeModPlugin):
         # Sort completed torrents by seeding time
         completed_torrents = sorted(
             [x for x in torrents if x['is_finished']],
-            key=lambda t: t['seeding_time']
+            key=lambda t: t['seeding_time'],
+            reverse=True
         )
         
         torrents_to_del = []
         # Loop through completed torrents and delete until there is enough space
         for tor_complete in completed_torrents:
-            torrents_to_del += tor_complete
+            torrents_to_del.append(tor_complete)
             size_storage_space += tor_complete['total_done']
             if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
-                    logger.info('Deleting: %s.' % (tor_to_del['name']))
-                    self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
-                    # logger.info('Free: %d bytes space.' % (tor['total_done']))
+                    logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['total_done']))
+                    client.call('core.remove_torrent', tor_to_del['hash'], True)
+                    # self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
+                time.sleep(5)
                 size_storage_space = client.call('core.get_free_space')
                 logger.info('Free space: %d bytes.' % (size_storage_space))
                 return True
