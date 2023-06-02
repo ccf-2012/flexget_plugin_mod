@@ -186,7 +186,7 @@ class OutputQBitTorrentMod:
             logger.error(
                 'There was an error during client.torrents_delete: %s', ex)
                 
-    def space_for_torrent(self, client, torrents, entry):
+    def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
         size_storage_space = self.get_free_space(client)
         logger.info('Free space: %d bytes.' % (size_storage_space))
@@ -198,7 +198,7 @@ class OutputQBitTorrentMod:
             size_left_to_complete += torrent['amount_left']
             # size_left_to_complete += (torrent['total_size'] - torrent['downloaded'])
 
-        if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
+        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         
@@ -214,7 +214,7 @@ class OutputQBitTorrentMod:
         for tor_complete in completed_torrents:
             torrents_to_del.append(tor_complete)
             size_storage_space += tor_complete['downloaded']
-            if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
+            if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['downloaded']))
@@ -332,12 +332,14 @@ class OutputQBitTorrentMod:
             # client.disconnect()
             return
 
+        size_accept = 0
         for entry in task.accepted:
             # make space for new torrent
-            enough_space = self.space_for_torrent(client, torrents, entry)
+            enough_space = self.space_for_torrent(client, torrents, entry, size_accept)
             if not enough_space:
                 logger.info('No enough disk space left, skip torrent: {}', entry['title'])
                 continue
+            size_accept += entry.get("size")
 
             form_data = {}
             try:
