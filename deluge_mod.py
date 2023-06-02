@@ -295,7 +295,7 @@ class OutputDelugeMod(DelugeModPlugin):
         logger.error('Fail to load torrent list!')
         return False, []
 
-    def space_for_torrent(self, client, torrents, entry):
+    def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
         size_storage_space = client.call('core.get_free_space')
         logger.info('Free space: %d bytes.' % (size_storage_space))
@@ -306,7 +306,7 @@ class OutputDelugeMod(DelugeModPlugin):
         for torrent in uncompleted_torrents:
             size_left_to_complete += (torrent['total_size'] - torrent['total_done'])
 
-        if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
+        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         
@@ -322,7 +322,7 @@ class OutputDelugeMod(DelugeModPlugin):
         for tor_complete in completed_torrents:
             torrents_to_del.append(tor_complete)
             size_storage_space += tor_complete['total_done']
-            if size_storage_space - size_left_to_complete > size_new_torrent + DISK_SPACE_MARGIN:
+            if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['total_done']))
@@ -425,15 +425,17 @@ class OutputDelugeMod(DelugeModPlugin):
             client.disconnect()
             return            
 
+        size_accept = 0
         # add the torrents
         torrent_ids = client.call('core.get_session_state')
         for entry in task.accepted:
             # make space for new torrent
-            enough_space = self.space_for_torrent(client, torrents, entry)
+            enough_space = self.space_for_torrent(client, torrents, entry, size_accept)
             if not enough_space:
                 logger.info('No enough disk space left, skip torrent: {}', entry['title'])
                 continue
-
+            size_accept += entry.get("size")
+            
             # Generate deluge options dict for torrent add
             add_opts = {}
             try:
