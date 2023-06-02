@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import math
 from pathlib import Path
 
 from loguru import logger
@@ -16,6 +17,16 @@ from flexget.utils.template import RenderError
 logger = logger.bind(name='deluge_mod')
 DISK_SPACE_MARGIN = 2048000000 # 2G before disk full
 DISK_SPACE_100G = 102400000000 # skip torrent check if disk space > 100G
+
+
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s %s" % (s, size_name[i])
 
 class DelugeModPlugin:
     """Base class for deluge plugins, contains settings and methods for connecting to a deluge daemon."""
@@ -295,10 +306,11 @@ class OutputDelugeMod(DelugeModPlugin):
         logger.error('Fail to load torrent list!')
         return False, []
 
+
     def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
         size_storage_space = client.call('core.get_free_space')
-        logger.info('Free space: %d bytes.' % (size_storage_space))
+        logger.info('Free space: %s.' % convert_size(size_storage_space))
 
         # for all Downloading torrents in Deluge, calculate bytes left to download
         size_left_to_complete = 0
@@ -325,15 +337,15 @@ class OutputDelugeMod(DelugeModPlugin):
             if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
-                    logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['total_done']))
+                    logger.info('Deleting: %s to free %s.' % (tor_to_del['name'], convert_size(tor_to_del['total_done'])))
                     try:
                         client.call('core.remove_torrent', tor_to_del['hash'], True)
                     except:
                         logger.error('Fail to remove torrent: %s' % tor_to_del['name'])
                     # self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
-                time.sleep(5)
+                time.sleep(3)
                 size_storage_space = client.call('core.get_free_space')
-                logger.info('Free space: %d bytes.' % (size_storage_space))
+                logger.info('Free space: %s.' % convert_size(size_storage_space))
                 return True
         return False
     

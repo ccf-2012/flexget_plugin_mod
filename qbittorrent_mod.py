@@ -15,6 +15,15 @@ logger = logger.bind(name='qbittorrent_mod')
 DISK_SPACE_MARGIN = 20048000000 # 2G before disk full
 DISK_SPACE_100G = 102400000000 # skip torrent check if disk space > 100G
 
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s %s" % (s, size_name[i])
+
 
 class OutputQBitTorrentMod:
     """
@@ -175,6 +184,7 @@ class OutputQBitTorrentMod:
     def load_torrents(self, client):
         try:
             torrents = client.torrents_info()
+            logger.info('Currently %d torrents in client.' % (len(torrents)))
             return True, torrents
         except:
             return False, []
@@ -189,7 +199,7 @@ class OutputQBitTorrentMod:
     def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
         size_storage_space = self.get_free_space(client)
-        logger.info('Free space: %d bytes.' % (size_storage_space))
+        logger.info('Free space: %s.' % convert_size(size_storage_space))
 
         # for all Downloading torrents in Deluge, calculate bytes left to download
         size_left_to_complete = 0
@@ -217,11 +227,11 @@ class OutputQBitTorrentMod:
             if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
                 # Enough space now available, add the new torrent
                 for tor_to_del in torrents_to_del:
-                    logger.info('Deleting: %s to free %d bytes.' % (tor_to_del['name'], tor_to_del['downloaded']))
+                    logger.info('Deleting: %s to free %s.' % (tor_to_del['name'], convert_size(tor_to_del['downloaded'])))
                     self.delete_torrent(client, tor_to_del['hash'])
                 time.sleep(5)
                 size_storage_space = self.get_free_space(client)
-                logger.info('Free space: %d bytes.' % (size_storage_space))
+                logger.info('Free space: %s.' % convert_size(size_storage_space))
                 return True
         return False
                 
