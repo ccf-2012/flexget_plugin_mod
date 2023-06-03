@@ -191,6 +191,8 @@ class OutputQBitTorrentMod:
     
     def delete_torrent(self, client, tor_hash):
         try:
+            client.torrents_pause(torrent_hashes=tor_hash)
+            time.sleep(1)
             client.torrents_delete(True, torrent_hashes=tor_hash)
         except Exception as ex:
             logger.error(
@@ -198,6 +200,7 @@ class OutputQBitTorrentMod:
                 
     def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
+        logger.info('New torrent: %s, need %s.' % (entry.get("title"), convert_size(size_new_torrent)))
         size_storage_space = self.get_free_space(client)
         logger.info('Free space: %s.' % convert_size(size_storage_space))
 

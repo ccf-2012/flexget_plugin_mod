@@ -309,6 +309,7 @@ class OutputDelugeMod(DelugeModPlugin):
 
     def space_for_torrent(self, client, torrents, entry, size_accept):
         size_new_torrent = entry.get("size")
+        logger.info('New torrent: %s, need %s.' % (entry.get("title"), convert_size(size_new_torrent)))
         size_storage_space = client.call('core.get_free_space')
         logger.info('Free space: %s.' % convert_size(size_storage_space))
 
@@ -339,6 +340,8 @@ class OutputDelugeMod(DelugeModPlugin):
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %s.' % (tor_to_del['name'], convert_size(tor_to_del['total_done'])))
                     try:
+                        client.call('core.pause_torrent', tor_to_del['hash'])
+                        time.sleep(1)
                         client.call('core.remove_torrent', tor_to_del['hash'], True)
                     except:
                         logger.error('Fail to remove torrent: %s' % tor_to_del['name'])
