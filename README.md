@@ -24,6 +24,11 @@
 
 ## 安装
 * 下载 `deluge_mod.py` 到 flexget 的 plugins 目录
+* create dir if not exists
+```sh
+mkdir -p ~/.config/flexget/plugins/
+```
+* save the mod into plugin dir
 ```sh
 wget -O ~/.config/flexget/plugins/deluge_mod.py https://raw.githubusercontent.com/ccf-2012/flexget_plugin_mod/main/deluge_mod.py
 ```
@@ -36,7 +41,8 @@ wget -O ~/.config/flexget/plugins/qbittorrent_mod.py https://raw.githubuserconte
 ## 配置
 * 修改原有的 `config.yml` 中的 `deluge` 为 `deluge_mod`，例如：
 ```yaml
-task1:
+tasks:
+  task1:
     rss: https://your_site.pt/torrentrss.php?passkey=your_rss_link
     accept_all: yes
     content_size:
