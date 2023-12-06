@@ -346,6 +346,7 @@ class OutputDelugeMod(DelugeModPlugin):
                         client.call('core.remove_torrent', tor_to_del['hash'], True)
                     except:
                         logger.error('Fail to remove torrent: %s' % tor_to_del['name'])
+                        return False
                     # self.deluge_client.core.remove_torrent(tor_to_del['hash'], remove_data=True)
                 time.sleep(3)
                 size_storage_space = client.call('core.get_free_space')
