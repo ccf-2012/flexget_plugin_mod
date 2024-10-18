@@ -37,6 +37,17 @@ wget -O ~/.config/flexget/plugins/deluge_mod.py https://raw.githubusercontent.co
 wget -O ~/.config/flexget/plugins/qbittorrent_mod.py https://raw.githubusercontent.com/ccf-2012/flexget_plugin_mod/main/qbittorrent_mod.py
 ```
 
+## 有时候需要install qbittorrent-api
+```sh
+cd 
+source ~/.local/flexget3/bin/activate
+
+```
+
+```sh
+pip install qbittorrent-api
+```
+
 
 ## 配置
 * 修改原有的 `config.yml` 中的 `deluge` 为 `deluge_mod`，例如：
