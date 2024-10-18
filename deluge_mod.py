@@ -320,7 +320,8 @@ class OutputDelugeMod(DelugeModPlugin):
             size_left_to_complete += (torrent['total_size'] - torrent['total_done'])
         logger.info('uncomplete download: %s.' % convert_size(size_left_to_complete))
 
-        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
+#        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
+        if size_storage_space - size_left_to_complete  - size_new_torrent > DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         

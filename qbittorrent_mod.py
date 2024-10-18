@@ -205,7 +205,7 @@ class OutputQBitTorrentMod:
         size_storage_space = self.get_free_space(client)
         logger.info('Free space: %s.' % convert_size(size_storage_space))
 
-        # for all Downloading torrents in Deluge, calculate bytes left to download
+        # for all Downloading torrents in qbit, calculate bytes left to download
         size_left_to_complete = 0
         uncompleted_torrents = [x for x in torrents if x['state']=='downloading']
         for torrent in uncompleted_torrents:
@@ -213,7 +213,8 @@ class OutputQBitTorrentMod:
             # size_left_to_complete += (torrent['total_size'] - torrent['downloaded'])
         logger.info('uncomplete download: %s.' % convert_size(size_left_to_complete))
 
-        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
+#        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
+        if size_storage_space - size_left_to_complete - size_new_torrent > DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         
@@ -234,6 +235,7 @@ class OutputQBitTorrentMod:
                 for tor_to_del in torrents_to_del:
                     logger.info('Deleting: %s to free %s.' % (tor_to_del['name'], convert_size(tor_to_del['downloaded'])))
                     self.delete_torrent(client, tor_to_del['hash'])
+                    time.sleep(3)
                 time.sleep(5)
                 size_storage_space = self.get_free_space(client)
                 logger.info('Free space: %s.' % convert_size(size_storage_space))
