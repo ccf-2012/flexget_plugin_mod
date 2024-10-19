@@ -19,11 +19,16 @@ DISK_SPACE_100G = 102400000000 # skip torrent check if disk space > 100G
 def convert_size(size_bytes):
     if size_bytes == 0:
         return "0B"
+    sign = ''
+    if size_bytes < 0:
+        sign = '-'
+        size_bytes = -size_bytes;
+
     size_name = ("B", "KB", "MB", "GB", "TB")
     i = int(math.floor(math.log(size_bytes, 1024)))
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
-    return "%s %s" % (s, size_name[i])
+    return sign+"%s %s" % (s, size_name[i])
 
 
 class OutputQBitTorrentMod:
@@ -213,8 +218,10 @@ class OutputQBitTorrentMod:
             # size_left_to_complete += (torrent['total_size'] - torrent['downloaded'])
         logger.info('uncomplete download: %s.' % convert_size(size_left_to_complete))
 
-#        if size_storage_space - size_left_to_complete - size_accept > size_new_torrent + DISK_SPACE_MARGIN:
-        if size_storage_space - size_left_to_complete - size_new_torrent > DISK_SPACE_MARGIN:
+        remain_space = size_storage_space - size_left_to_complete - size_accept
+        logger.info('remain sapce: %s - %s - %s - %s = %s.' % (convert_size(size_storage_space), convert_size(size_left_to_complete), convert_size(size_new_torrent), convert_size(size_accept), convert_size(remain_space)))
+        if remain_space > size_new_torrent + DISK_SPACE_MARGIN:
+        # if size_storage_space - size_left_to_complete - size_new_torrent > DISK_SPACE_MARGIN:
             # enough space to add the new torrent
             return True
         
